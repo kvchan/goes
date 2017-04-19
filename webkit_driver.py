@@ -6,10 +6,10 @@ def wait_for_page_load(driver, old_page_id):
     while time.time() < start_time + 5:
         new_page = driver.find_element_by_tag_name('html')
         if new_page.id != old_page_id:
-            time.sleep(1)
+            time.sleep(0.2)
             return True
         else:
-            time.sleep(0.1)
+            time.sleep(0.01)
     #raise Exception('Timeout waiting for Page Load')
     print 'Timeout waiting for Page Load'
 

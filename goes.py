@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import re
 import urllib
 from bs4 import BeautifulSoup
@@ -11,40 +13,11 @@ import os
 import shutil
 import webkit_driver
 import time
+from twilio.rest import Client
 
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 goes_username = 'username'
 goes_password = 'password'
-
-email_id = 'email_username'
-email_password = 'email_password'
-
-email_from_addr =  'user@comcast.net'
-email_to_addr = '4150000000@tmobile.net'
-
-def send_mail(user, to, subject, text, smtp_server='smtp.comcast.net'):
-
-    fr = user
-    msg = MIMEMultipart()
-    msg['Subject'] = subject
-    msg['From'] = fr
-    msg['To'] = to
-    body = MIMEText(text, 'plain')
-    msg.attach(body)
-    try:
-        # Email for comcast
-        s = smtplib.SMTP(smtp_server, 587)
-        s.ehlo()
-        s.starttls()
-        s.login(email_id, email_password)
-        s.sendmail(fr, to, msg.as_string())
-        print "Sent Email successfully, quitting server"
-        s.quit()
-    except:
-        print "ERROR: Could not send email"
 
 
 def get_title(driver):
@@ -110,7 +83,7 @@ def run_scrape(driver):
         click_button(driver, driver.find_element_by_xpath("//input[@value=5446]"))
 
         # Wait For Next Button
-        time.sleep(5)
+        time.sleep(2)
         click_button(driver, driver.find_element_by_name("next"))
 
     # Wait for page Load
@@ -132,6 +105,14 @@ def run(driver):
     print "Running Scrape"
     dates = run_scrape(driver)
 
+    # number to send SMS to
+    toNumber = "+15105550006"
+
+    #twilio tokens
+    twilioAccount = "xxx"
+    twilioToken = "yyy"
+    fromNumber = "+15105550006"
+
     #201711012230
     mos = [re.search('(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)', d) for d in dates]
 
@@ -148,14 +129,19 @@ def run(driver):
 
         if (month == '04' or month == '05') and cnt == 0:
             print "Sending Email"
-            send_mail(email_from_addr, email_to_addr, 'Found Date', msg, 'smtp.comcast.net')
+            client = Client(twilioAccount,twilioToken)
+
+            res = client.messages.create(to=toNumber, from_=fromNumber, 
+                    body=msg)
         cnt+=1
 
 
 
 if __name__ == '__main__':
         
+    print("load driver")
     driver = webkit_driver.init_webdriver()
+    print("loaded "+str(driver))
 
     start_url = 'https://goes-app.cbp.dhs.gov/goes/jsp/login.jsp'
     start_url = 'https://goes-app.cbp.dhs.gov/goes/index.jsp'
@@ -163,6 +149,7 @@ if __name__ == '__main__':
 
     while True:
         try:
+            print("calling run")
             run(driver)
         except selenium.common.exceptions.WebDriverException:
             print "Driver Crashed"
